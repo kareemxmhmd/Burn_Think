@@ -1,17 +1,22 @@
-# burn_shut
+# Burn Shut
 
-A new Flutter project.
+Burn Shut هو Desktop App صغير وخفيف معمول بـ Flutter.
 
-## Getting Started
+فكرته ببساطة إنه يبقى المكان الشخصي اللي تحط فيه كل حاجة في دماغك.
+بدل ما يكون عندك Tasks في مكان، Notes في مكان، أفكار Content في مكان، وShopping List في مكان تاني، Burn Shut بيجمعهم كلهم في Workspace واحدة بسيطة.
 
-This project is a starting point for a Flutter application.
+التطبيق بيعمل إيه؟
 
-A few resources to get you started if this is your first Flutter project:
+من داخل Burn Shut تقدر تدير:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Tasks — الحاجات اللي محتاج تخلصها.
+Projects — المشاريع والحاجات الكبيرة اللي بتشتغل عليها.
+Workout — تمرينك والـWorkout Plan بتاعك.
+Content — أفكار المحتوى والحاجات اللي عايز تعملها.
+Notes — أي حاجة عايز تحفظها أو تفتكرها.
+Shopping — الحاجات اللي محتاج تشتريها.
+Completed — كل الحاجات اللي خلصتها قبل كده.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+الفكرة إن كل نوع له طريقة استخدام مختلفة.
+
+يعني الـTask ممكن تخلصها، والـShopping Item ممكن تعلم عليه إنه اتجاب، والـProject ممكن يكون جواه كذا خطوة، والـWorkout مجرد خطة تمرين تحتفظ بيها وتعدلها.
