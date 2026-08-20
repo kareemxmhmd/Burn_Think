@@ -106,12 +106,21 @@ class SqliteProjectRepository implements ProjectRepository {
   @override
   Future<void> updateProject(Project project) async {
     final db = await _db;
-    await db.update(
-      'projects',
-      project.toMap(),
-      where: 'id = ?',
-      whereArgs: [project.id],
-    );
+    await db.transaction((txn) async {
+      await txn.update(
+        'projects',
+        project.toMap(),
+        where: 'id = ?',
+        whereArgs: [project.id],
+      );
+      for (final item in project.items) {
+        await txn.insert(
+          'project_items',
+          item.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    });
   }
 
   @override

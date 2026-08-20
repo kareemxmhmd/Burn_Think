@@ -156,6 +156,21 @@ class AppSearchController extends ChangeNotifier {
       }
     }
 
+    for (final p in workspaceController.completedProjects) {
+      if (p.title.toLowerCase().contains(q) ||
+          (p.description?.toLowerCase().contains(q) ?? false) ||
+          p.items.any((i) => i.title.toLowerCase().contains(q))) {
+        list.add(SearchResultItem(
+          id: p.id,
+          type: DetailType.project,
+          title: p.title,
+          subtitle: 'Completed Project',
+          category: 'Completed',
+          item: p,
+        ));
+      }
+    }
+
     for (final s in workspaceController.boughtShoppingItems) {
       if (s.title.toLowerCase().contains(q) || (s.notes?.toLowerCase().contains(q) ?? false)) {
         list.add(SearchResultItem(
@@ -172,3 +187,4 @@ class AppSearchController extends ChangeNotifier {
     _results = list;
   }
 }
+

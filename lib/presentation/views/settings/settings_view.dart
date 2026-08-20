@@ -321,26 +321,43 @@ class _SettingsViewState extends State<SettingsView> {
             const SizedBox(height: AppSpacing.p12),
             GlassCard(
               padding: AppSpacing.insets20,
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Burn Shut',
-                        style: AppTypography.cardTitle.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        'Version 1.0.0',
-                        style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
-                      ),
-                    ],
+                  ClipRRect(
+                    borderRadius: AppRadii.radius10,
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Lightweight offline personal desktop workspace.\nTake everything that is in your head and organize it in one focused place.',
-                    style: AppTypography.body.copyWith(color: AppColors.textSecondary, height: 1.4),
+                  const SizedBox(width: AppSpacing.p16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Burn Shut',
+                              style: AppTypography.cardTitle.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              'Version 1.0.0',
+                              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Lightweight offline personal desktop workspace.\nTake everything that is in your head and organize it in one focused place.',
+                          style: AppTypography.body.copyWith(color: AppColors.textSecondary, height: 1.4),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

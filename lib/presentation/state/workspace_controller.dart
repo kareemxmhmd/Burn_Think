@@ -237,60 +237,87 @@ class WorkspaceController extends ChangeNotifier {
     DateTime? dueDate,
     String? projectId,
   }) async {
-    final now = DateTime.now();
-    final task = Task(
-      id: _uuid.v4(),
-      title: title.trim(),
-      description: description?.trim().isEmpty == true ? null : description?.trim(),
-      priority: priority,
-      dueDate: dueDate,
-      projectId: projectId,
-      createdAt: now,
-      updatedAt: now,
-    );
-    await taskRepository.insertTask(task);
-    await refreshAllData();
+    try {
+      final now = DateTime.now();
+      final task = Task(
+        id: _uuid.v4(),
+        title: title.trim(),
+        description: description?.trim().isEmpty == true ? null : description?.trim(),
+        priority: priority,
+        dueDate: dueDate,
+        projectId: projectId,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await taskRepository.insertTask(task);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to create task: $e');
+    }
   }
 
   Future<void> updateTask(Task task) async {
-    final updated = task.copyWith(updatedAt: DateTime.now());
-    await taskRepository.updateTask(updated);
-    await refreshAllData();
+    try {
+      final updated = task.copyWith(updatedAt: DateTime.now());
+      await taskRepository.updateTask(updated);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to update task: $e');
+    }
   }
 
   Future<void> completeTask(Task task) async {
-    await taskRepository.setTaskCompleted(task.id, true);
-    await refreshAllData();
+    try {
+      await taskRepository.setTaskCompleted(task.id, true);
+      await refreshAllData();
 
-    _toastService.show(
-      'Task completed',
-      undoLabel: 'Undo',
-      onUndo: () async {
-        await taskRepository.setTaskCompleted(task.id, false);
-        await refreshAllData();
-      },
-    );
+      _toastService.show(
+        'Task completed',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await taskRepository.setTaskCompleted(task.id, false);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to complete task: $e');
+    }
   }
 
   Future<void> uncompleteTask(Task task) async {
-    await taskRepository.setTaskCompleted(task.id, false);
-    await refreshAllData();
-    _toastService.show('Task restored to active');
+    try {
+      await taskRepository.setTaskCompleted(task.id, false);
+      await refreshAllData();
+      _toastService.show(
+        'Task restored to active',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await taskRepository.setTaskCompleted(task.id, true);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to restore task: $e');
+    }
   }
 
   Future<void> deleteTask(Task task) async {
-    await taskRepository.deleteTask(task.id);
-    await refreshAllData();
-    if (_detailTarget?.id == task.id) closeDetail();
+    try {
+      await taskRepository.deleteTask(task.id);
+      await refreshAllData();
+      if (_detailTarget?.id == task.id) closeDetail();
 
-    _toastService.show(
-      'Task deleted',
-      undoLabel: 'Undo',
-      onUndo: () async {
-        await taskRepository.insertTask(task);
-        await refreshAllData();
-      },
-    );
+      _toastService.show(
+        'Task deleted',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await taskRepository.insertTask(task);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to delete task: $e');
+    }
   }
 
   // ==========================================
@@ -326,68 +353,107 @@ class WorkspaceController extends ChangeNotifier {
       items: items,
     );
 
-    await projectRepository.insertProject(project);
-    await refreshAllData();
+    try {
+      await projectRepository.insertProject(project);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to create project: $e');
+    }
     return project;
   }
 
   Future<void> updateProject(Project project) async {
-    final updated = project.copyWith(updatedAt: DateTime.now());
-    await projectRepository.updateProject(updated);
-    await refreshAllData();
+    try {
+      final updated = project.copyWith(updatedAt: DateTime.now());
+      await projectRepository.updateProject(updated);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to update project: $e');
+    }
   }
 
   Future<void> deleteProject(Project project) async {
-    await projectRepository.deleteProject(project.id);
-    await refreshAllData();
-    if (_detailTarget?.id == project.id) closeDetail();
+    try {
+      await projectRepository.deleteProject(project.id);
+      await refreshAllData();
+      if (_detailTarget?.id == project.id) closeDetail();
 
-    _toastService.show(
-      'Project deleted',
-      undoLabel: 'Undo',
-      onUndo: () async {
-        await projectRepository.insertProject(project);
-        await refreshAllData();
-      },
-    );
-  }
-
-  Future<void> setProjectCompleted(Project project, bool isCompleted) async {
-    await projectRepository.setProjectCompleted(project.id, isCompleted);
-    await refreshAllData();
-    if (isCompleted) {
       _toastService.show(
-        'Project marked completed',
+        'Project deleted',
         undoLabel: 'Undo',
         onUndo: () async {
-          await projectRepository.setProjectCompleted(project.id, false);
+          await projectRepository.insertProject(project);
           await refreshAllData();
         },
       );
+    } catch (e) {
+      _toastService.show('Failed to delete project: $e');
+    }
+  }
+
+  Future<void> setProjectCompleted(Project project, bool isCompleted) async {
+    try {
+      await projectRepository.setProjectCompleted(project.id, isCompleted);
+      await refreshAllData();
+      _toastService.show(
+        isCompleted ? 'Project marked completed' : 'Project restored to active',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await projectRepository.setProjectCompleted(project.id, !isCompleted);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to update project status: $e');
     }
   }
 
   Future<void> addProjectItem(String projectId, String title) async {
-    final now = DateTime.now();
-    final item = ProjectItem(
-      id: _uuid.v4(),
-      projectId: projectId,
-      title: title.trim(),
-      createdAt: now,
-      updatedAt: now,
-    );
-    await projectRepository.insertProjectItem(item);
-    await refreshAllData();
+    try {
+      final now = DateTime.now();
+      final item = ProjectItem(
+        id: _uuid.v4(),
+        projectId: projectId,
+        title: title.trim(),
+        createdAt: now,
+        updatedAt: now,
+      );
+      await projectRepository.insertProjectItem(item);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to add project item: $e');
+    }
+  }
+
+  Future<void> updateProjectItemTitle(ProjectItem item, String newTitle) async {
+    try {
+      final updated = item.copyWith(
+        title: newTitle.trim(),
+        updatedAt: DateTime.now(),
+      );
+      await projectRepository.updateProjectItem(updated);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to update project item: $e');
+    }
   }
 
   Future<void> toggleProjectItem(ProjectItem item, bool isCompleted) async {
-    await projectRepository.setProjectItemCompleted(item.id, isCompleted);
-    await refreshAllData();
+    try {
+      await projectRepository.setProjectItemCompleted(item.id, isCompleted);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to toggle project item: $e');
+    }
   }
 
   Future<void> deleteProjectItem(ProjectItem item) async {
-    await projectRepository.deleteProjectItem(item.id);
-    await refreshAllData();
+    try {
+      await projectRepository.deleteProjectItem(item.id);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to delete project item: $e');
+    }
   }
 
   // ==========================================
@@ -420,51 +486,95 @@ class WorkspaceController extends ChangeNotifier {
       exercises: exercises,
     );
 
-    await workoutRepository.insertWorkout(workout);
-    await refreshAllData();
+    try {
+      await workoutRepository.insertWorkout(workout);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to create workout: $e');
+    }
     return workout;
   }
 
   Future<void> updateWorkout(Workout workout) async {
-    final updated = workout.copyWith(updatedAt: DateTime.now());
-    await workoutRepository.updateWorkout(updated);
-    await refreshAllData();
+    try {
+      final updated = workout.copyWith(updatedAt: DateTime.now());
+      await workoutRepository.updateWorkout(updated);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to update workout: $e');
+    }
   }
 
   Future<void> deleteWorkout(Workout workout) async {
-    await workoutRepository.deleteWorkout(workout.id);
-    await refreshAllData();
-    if (_detailTarget?.id == workout.id) closeDetail();
+    try {
+      await workoutRepository.deleteWorkout(workout.id);
+      await refreshAllData();
+      if (_detailTarget?.id == workout.id) closeDetail();
 
-    _toastService.show('Workout deleted');
+      _toastService.show(
+        'Workout deleted',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await workoutRepository.insertWorkout(workout);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to delete workout: $e');
+    }
   }
 
   Future<void> setFocusWorkout(String workoutId) async {
-    await workoutRepository.setCurrentFocusWorkout(workoutId);
-    await refreshAllData();
+    try {
+      await workoutRepository.setCurrentFocusWorkout(workoutId);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to set focus workout: $e');
+    }
   }
 
   Future<void> addExerciseToWorkout(String workoutId, Exercise exercise) async {
-    final now = DateTime.now();
-    final newEx = exercise.copyWith(
-      id: _uuid.v4(),
-      workoutId: workoutId,
-      createdAt: now,
-      updatedAt: now,
-    );
-    await workoutRepository.insertExercise(newEx);
-    await refreshAllData();
+    try {
+      final now = DateTime.now();
+      final newEx = exercise.copyWith(
+        id: exercise.id.isNotEmpty ? exercise.id : _uuid.v4(),
+        workoutId: workoutId,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await workoutRepository.insertExercise(newEx);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to add exercise: $e');
+    }
   }
 
   Future<void> updateExercise(Exercise exercise) async {
-    final updated = exercise.copyWith(updatedAt: DateTime.now());
-    await workoutRepository.updateExercise(updated);
-    await refreshAllData();
+    try {
+      final updated = exercise.copyWith(updatedAt: DateTime.now());
+      await workoutRepository.updateExercise(updated);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to update exercise: $e');
+    }
   }
 
   Future<void> deleteExercise(Exercise exercise) async {
-    await workoutRepository.deleteExercise(exercise.id);
-    await refreshAllData();
+    try {
+      await workoutRepository.deleteExercise(exercise.id);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to delete exercise: $e');
+    }
+  }
+
+  Future<void> reorderExercises(String workoutId, List<String> exerciseIdsInOrder) async {
+    try {
+      await workoutRepository.reorderExercises(workoutId, exerciseIdsInOrder);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to reorder exercises: $e');
+    }
   }
 
   // ==========================================
@@ -478,33 +588,53 @@ class WorkspaceController extends ChangeNotifier {
     String? notes,
     String status = 'Idea',
   }) async {
-    final now = DateTime.now();
-    final item = ContentItem(
-      id: _uuid.v4(),
-      title: title.trim(),
-      description: description?.trim().isEmpty == true ? null : description?.trim(),
-      contentType: contentType,
-      duration: duration,
-      notes: notes,
-      status: status,
-      createdAt: now,
-      updatedAt: now,
-    );
-    await contentRepository.insertContentItem(item);
-    await refreshAllData();
+    try {
+      final now = DateTime.now();
+      final item = ContentItem(
+        id: _uuid.v4(),
+        title: title.trim(),
+        description: description?.trim().isEmpty == true ? null : description?.trim(),
+        contentType: contentType,
+        duration: duration,
+        notes: notes,
+        status: status,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await contentRepository.insertContentItem(item);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to create content idea: $e');
+    }
   }
 
   Future<void> updateContentItem(ContentItem item) async {
-    final updated = item.copyWith(updatedAt: DateTime.now());
-    await contentRepository.updateContentItem(updated);
-    await refreshAllData();
+    try {
+      final updated = item.copyWith(updatedAt: DateTime.now());
+      await contentRepository.updateContentItem(updated);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to update content idea: $e');
+    }
   }
 
   Future<void> deleteContentItem(ContentItem item) async {
-    await contentRepository.deleteContentItem(item.id);
-    await refreshAllData();
-    if (_detailTarget?.id == item.id) closeDetail();
-    _toastService.show('Content idea deleted');
+    try {
+      await contentRepository.deleteContentItem(item.id);
+      await refreshAllData();
+      if (_detailTarget?.id == item.id) closeDetail();
+
+      _toastService.show(
+        'Content idea deleted',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await contentRepository.insertContentItem(item);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to delete content idea: $e');
+    }
   }
 
   // ==========================================
@@ -515,35 +645,59 @@ class WorkspaceController extends ChangeNotifier {
     required String body,
     bool isPinned = false,
   }) async {
-    final now = DateTime.now();
-    final note = Note(
-      id: _uuid.v4(),
-      title: title.trim(),
-      body: body.trim(),
-      isPinned: isPinned,
-      createdAt: now,
-      updatedAt: now,
-    );
-    await noteRepository.insertNote(note);
-    await refreshAllData();
+    try {
+      final now = DateTime.now();
+      final note = Note(
+        id: _uuid.v4(),
+        title: title.trim(),
+        body: body.trim(),
+        isPinned: isPinned,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await noteRepository.insertNote(note);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to create note: $e');
+    }
   }
 
   Future<void> updateNote(Note note) async {
-    final updated = note.copyWith(updatedAt: DateTime.now());
-    await noteRepository.updateNote(updated);
-    await refreshAllData();
+    try {
+      final updated = note.copyWith(updatedAt: DateTime.now());
+      await noteRepository.updateNote(updated);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to update note: $e');
+    }
   }
 
   Future<void> togglePinNote(Note note) async {
-    await noteRepository.togglePinNote(note.id, !note.isPinned);
-    await refreshAllData();
+    try {
+      await noteRepository.togglePinNote(note.id, !note.isPinned);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to toggle pin: $e');
+    }
   }
 
   Future<void> deleteNote(Note note) async {
-    await noteRepository.deleteNote(note.id);
-    await refreshAllData();
-    if (_detailTarget?.id == note.id) closeDetail();
-    _toastService.show('Note deleted');
+    try {
+      await noteRepository.deleteNote(note.id);
+      await refreshAllData();
+      if (_detailTarget?.id == note.id) closeDetail();
+
+      _toastService.show(
+        'Note deleted',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await noteRepository.insertNote(note);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to delete note: $e');
+    }
   }
 
   // ==========================================
@@ -553,56 +707,83 @@ class WorkspaceController extends ChangeNotifier {
     required String title,
     String? notes,
   }) async {
-    final now = DateTime.now();
-    final item = ShoppingItem(
-      id: _uuid.v4(),
-      title: title.trim(),
-      notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
-      createdAt: now,
-      updatedAt: now,
-    );
-    await shoppingRepository.insertShoppingItem(item);
-    await refreshAllData();
+    try {
+      final now = DateTime.now();
+      final item = ShoppingItem(
+        id: _uuid.v4(),
+        title: title.trim(),
+        notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
+        createdAt: now,
+        updatedAt: now,
+      );
+      await shoppingRepository.insertShoppingItem(item);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to create shopping item: $e');
+    }
   }
 
   Future<void> updateShoppingItem(ShoppingItem item) async {
-    final updated = item.copyWith(updatedAt: DateTime.now());
-    await shoppingRepository.updateShoppingItem(updated);
-    await refreshAllData();
+    try {
+      final updated = item.copyWith(updatedAt: DateTime.now());
+      await shoppingRepository.updateShoppingItem(updated);
+      await refreshAllData();
+    } catch (e) {
+      _toastService.show('Failed to update shopping item: $e');
+    }
   }
 
   Future<void> markShoppingItemBought(ShoppingItem item) async {
-    await shoppingRepository.setShoppingItemBought(item.id, true);
-    await refreshAllData();
+    try {
+      await shoppingRepository.setShoppingItemBought(item.id, true);
+      await refreshAllData();
 
-    _toastService.show(
-      'Item marked as bought',
-      undoLabel: 'Undo',
-      onUndo: () async {
-        await shoppingRepository.setShoppingItemBought(item.id, false);
-        await refreshAllData();
-      },
-    );
+      _toastService.show(
+        'Item marked as bought',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await shoppingRepository.setShoppingItemBought(item.id, false);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to mark item bought: $e');
+    }
   }
 
   Future<void> markShoppingItemUnbought(ShoppingItem item) async {
-    await shoppingRepository.setShoppingItemBought(item.id, false);
-    await refreshAllData();
-    _toastService.show('Item moved back to To Buy');
+    try {
+      await shoppingRepository.setShoppingItemBought(item.id, false);
+      await refreshAllData();
+      _toastService.show(
+        'Item moved back to To Buy',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await shoppingRepository.setShoppingItemBought(item.id, true);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to restore shopping item: $e');
+    }
   }
 
   Future<void> deleteShoppingItem(ShoppingItem item) async {
-    await shoppingRepository.deleteShoppingItem(item.id);
-    await refreshAllData();
-    if (_detailTarget?.id == item.id) closeDetail();
+    try {
+      await shoppingRepository.deleteShoppingItem(item.id);
+      await refreshAllData();
+      if (_detailTarget?.id == item.id) closeDetail();
 
-    _toastService.show(
-      'Shopping item deleted',
-      undoLabel: 'Undo',
-      onUndo: () async {
-        await shoppingRepository.insertShoppingItem(item);
-        await refreshAllData();
-      },
-    );
+      _toastService.show(
+        'Shopping item deleted',
+        undoLabel: 'Undo',
+        onUndo: () async {
+          await shoppingRepository.insertShoppingItem(item);
+          await refreshAllData();
+        },
+      );
+    } catch (e) {
+      _toastService.show('Failed to delete shopping item: $e');
+    }
   }
 }

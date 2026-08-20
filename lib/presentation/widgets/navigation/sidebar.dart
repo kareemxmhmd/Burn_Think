@@ -27,23 +27,43 @@ class Sidebar extends StatelessWidget {
         children: [
           // Branding
           Padding(
-            padding: const EdgeInsets.only(left: AppSpacing.p20, right: AppSpacing.p20, top: AppSpacing.p24, bottom: AppSpacing.p20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.only(left: AppSpacing.p16, right: AppSpacing.p16, top: AppSpacing.p20, bottom: AppSpacing.p16),
+            child: Row(
               children: [
-                Text(
-                  'Burn Shut',
-                  style: AppTypography.pageTitle.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
+                ClipRRect(
+                  borderRadius: AppRadii.radius8,
+                  child: Image.asset(
+                    'assets/icon/app_icon.png',
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.cover,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'Deep Work Workspace',
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.textTertiary,
-                    letterSpacing: 0.3,
+                const SizedBox(width: AppSpacing.p12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Burn Shut',
+                        style: AppTypography.pageTitle.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Deep Work Workspace',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textTertiary,
+                          letterSpacing: 0.3,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
