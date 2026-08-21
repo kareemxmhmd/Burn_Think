@@ -66,7 +66,7 @@ void main() {
 
     // Verify Branding
     expect(find.text('Burn Shut'), findsOneWidget);
-    expect(find.text('Deep Work Workspace'), findsOneWidget);
+    expect(find.text('Deep Workspace'), findsOneWidget);
 
     // Verify Sidebar Items
     expect(find.text('Home'), findsOneWidget);

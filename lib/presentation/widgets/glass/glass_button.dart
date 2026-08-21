@@ -165,6 +165,7 @@ class _GlassButtonState extends State<GlassButton> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
         onTapUp: isEnabled ? (_) => setState(() => _isPressed = false) : null,
         onTapCancel: () => setState(() => _isPressed = false),
@@ -205,21 +206,30 @@ class GlassIconButton extends StatefulWidget {
 
 class _GlassIconButtonState extends State<GlassIconButton> {
   bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
+    final isEnabled = widget.onPressed != null;
+
     Widget btn = MouseRegion(
-      cursor: widget.onPressed != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      cursor: isEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: widget.onPressed,
+        behavior: HitTestBehavior.opaque,
+        onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
+        onTapUp: isEnabled ? (_) => setState(() => _isPressed = false) : null,
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: isEnabled ? widget.onPressed : null,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: widget.size,
           height: widget.size,
           decoration: BoxDecoration(
-            color: _isHovered ? AppColors.glassHover : AppColors.glassSubtle,
+            color: _isPressed
+                ? AppColors.glassActive
+                : (_isHovered ? AppColors.glassHover : AppColors.glassSubtle),
             borderRadius: AppRadii.radius8,
             border: Border.all(
               color: _isHovered ? AppColors.glassBorderStrong : AppColors.glassBorderSubtle,

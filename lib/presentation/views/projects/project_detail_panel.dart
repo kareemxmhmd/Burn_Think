@@ -73,7 +73,18 @@ class _ProjectDetailPanelState extends State<ProjectDetailPanel> {
 
   Future<void> _handleAddItem() async {
     final text = _newItemController.text.trim();
-    if (text.isEmpty || _currentProject == null) return;
+    if (text.isEmpty) return;
+
+    if (_currentProject == null) {
+      final title = _titleController.text.trim();
+      final projectTitle = title.isNotEmpty ? title : 'New Project';
+      final newProj = await widget.controller.createProject(
+        title: projectTitle,
+        description: _descriptionController.text.trim(),
+      );
+      _currentProject = newProj;
+    }
+
     await widget.controller.addProjectItem(_currentProject!.id, text);
     _newItemController.clear();
     // Update local reference from controller

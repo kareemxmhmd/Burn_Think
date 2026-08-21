@@ -97,7 +97,20 @@ class _WorkoutDetailPanelState extends State<WorkoutDetailPanel> {
 
   Future<void> _handleAddExercise() async {
     final name = _newNameController.text.trim();
-    if (name.isEmpty || _currentWorkout == null) return;
+    if (name.isEmpty) return;
+
+    if (_currentWorkout == null) {
+      final wName = _nameController.text.trim();
+      final workoutName = wName.isNotEmpty ? wName : 'New Workout';
+      final duration = int.tryParse(_durationController.text.trim());
+      final newW = await widget.controller.createWorkout(
+        name: workoutName,
+        targetTime: _targetTimeController.text.trim(),
+        estimatedDurationMinutes: duration,
+        notes: _notesController.text.trim(),
+      );
+      _currentWorkout = newW;
+    }
 
     final sets = int.tryParse(_newSetsController.text.trim()) ?? 3;
     final reps = int.tryParse(_newRepsController.text.trim()) ?? 10;

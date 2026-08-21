@@ -54,7 +54,7 @@ class Sidebar extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Deep Work Workspace',
+                        'Deep Workspace',
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textTertiary,
                           letterSpacing: 0.3,

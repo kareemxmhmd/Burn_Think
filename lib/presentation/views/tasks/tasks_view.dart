@@ -33,7 +33,10 @@ class _TasksViewState extends State<TasksView> {
 
   Future<void> _handleQuickAdd() async {
     final text = _quickInputController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty) {
+      widget.controller.openDetail(DetailType.task);
+      return;
+    }
     await widget.controller.createTask(
       title: text,
       priority: _priorityFilter ?? TaskPriority.none,

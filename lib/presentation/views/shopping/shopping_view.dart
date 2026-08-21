@@ -29,7 +29,10 @@ class _ShoppingViewState extends State<ShoppingView> {
 
   Future<void> _handleQuickAdd() async {
     final text = _quickInputController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty) {
+      widget.controller.openDetail(DetailType.shopping);
+      return;
+    }
     await widget.controller.createShoppingItem(title: text);
     _quickInputController.clear();
   }
