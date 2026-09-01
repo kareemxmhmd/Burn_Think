@@ -21,7 +21,7 @@ void main() async {
       center: true,
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
-      title: 'Burn Shut',
+      title: 'Burn Think',
       titleBarStyle: TitleBarStyle.normal,
     );
 
@@ -31,5 +31,5 @@ void main() async {
     });
   }
 
-  runApp(const BurnShutApp());
+  runApp(const BurnThinkApp());
 }

@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:burn_shut/core/database/app_database.dart';
-import 'package:burn_shut/core/services/export_import_service.dart';
-import 'package:burn_shut/data/repositories/sqlite_task_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_project_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_shopping_repository.dart';
-import 'package:burn_shut/domain/models/task.dart';
-import 'package:burn_shut/domain/models/project.dart';
-import 'package:burn_shut/domain/models/shopping_item.dart';
+import 'package:burn_think/core/database/app_database.dart';
+import 'package:burn_think/core/services/export_import_service.dart';
+import 'package:burn_think/data/repositories/sqlite_task_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_project_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_shopping_repository.dart';
+import 'package:burn_think/domain/models/task.dart';
+import 'package:burn_think/domain/models/project.dart';
+import 'package:burn_think/domain/models/shopping_item.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +65,7 @@ void main() {
 
       // 1. Export
       final jsonString = await service.exportToJsonString();
-      expect(jsonString, contains('Burn Shut'));
+      expect(jsonString, contains('Burn Think'));
       expect(jsonString, contains('Exported Task'));
       expect(jsonString, contains('Exported Project'));
       expect(jsonString, contains('Coffee Beans'));

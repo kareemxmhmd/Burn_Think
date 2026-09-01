@@ -28,6 +28,18 @@ class _SettingsViewState extends State<SettingsView> {
   final _exportImportService = ExportImportService();
   bool _isExporting = false;
   bool _isImporting = false;
+  int _eventCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEventCount();
+  }
+
+  Future<void> _loadEventCount() async {
+    final count = await widget.controller.intelligenceService.getEventCount();
+    if (mounted) setState(() => _eventCount = count);
+  }
 
   Future<void> _handleExport() async {
     setState(() => _isExporting = true);
@@ -35,7 +47,7 @@ class _SettingsViewState extends State<SettingsView> {
       final jsonString = await _exportImportService.exportToJsonString();
 
       final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-').split('.').first;
-      final defaultFileName = 'burn_shut_backup_$timestamp.json';
+      final defaultFileName = 'burn_think_backup_$timestamp.json';
 
       final outputFile = await FilePicker.platform.saveFile(
         dialogTitle: 'Save Workspace Backup',
@@ -49,7 +61,6 @@ class _SettingsViewState extends State<SettingsView> {
         await file.writeAsString(jsonString);
         ToastService.instance.show('Workspace exported successfully');
       } else {
-        // Fallback: save into downloads or documents
         final docDir = await getApplicationDocumentsDirectory();
         final fallbackPath = '${docDir.path}/$defaultFileName';
         final file = File(fallbackPath);
@@ -67,7 +78,7 @@ class _SettingsViewState extends State<SettingsView> {
     setState(() => _isImporting = true);
     try {
       final result = await FilePicker.platform.pickFiles(
-        dialogTitle: 'Select Burn Shut Backup JSON',
+        dialogTitle: 'Select Burn Think Backup JSON',
         type: FileType.custom,
         allowedExtensions: ['json'],
       );
@@ -81,7 +92,7 @@ class _SettingsViewState extends State<SettingsView> {
 
         final isValid = _exportImportService.validateJson(jsonString);
         if (!isValid) {
-          ToastService.instance.show('Invalid Burn Shut backup file.');
+          ToastService.instance.show('Invalid Burn Think backup file.');
           return;
         }
 
@@ -140,6 +151,7 @@ class _SettingsViewState extends State<SettingsView> {
 
         if (importResult.success) {
           await widget.controller.refreshAllData();
+          await _loadEventCount();
           ToastService.instance.show(importResult.message);
         } else {
           ToastService.instance.show('Import error: ${importResult.message}');
@@ -174,13 +186,34 @@ class _SettingsViewState extends State<SettingsView> {
       if (confirmedSecond == true && mounted) {
         await AppDatabase.instance.resetDatabase();
         await widget.controller.refreshAllData();
+        await _loadEventCount();
         ToastService.instance.show('Local workspace has been reset.');
       }
     }
   }
 
+  Future<void> _handleClearLearningData() async {
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: 'Clear Intelligence Learning History?',
+      message:
+          'This will clear locally stored event tracking and adaptive category correction feedback. Your tasks and notes will NOT be affected.',
+      confirmLabel: 'Clear Learning Data',
+      isDestructive: true,
+    );
+
+    if (confirmed == true && mounted) {
+      await widget.controller.intelligenceService.clearLearningData();
+      await _loadEventCount();
+      ToastService.instance.show('Intelligence learning history cleared.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final intelligence = widget.controller.intelligenceService;
+    final settings = intelligence.settings;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.p32, vertical: AppSpacing.p8),
       child: ConstrainedBox(
@@ -196,17 +229,20 @@ class _SettingsViewState extends State<SettingsView> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Dark Glass Theme', style: AppTypography.itemTitle),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Monochrome workspace with subtle glass materials',
-                        style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Dark Glass Theme', style: AppTypography.itemTitle),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Monochrome workspace with subtle glass materials',
+                          style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: AppSpacing.p12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -225,6 +261,115 @@ class _SettingsViewState extends State<SettingsView> {
 
             const SizedBox(height: AppSpacing.p28),
 
+            // Personal Intelligence (PRD §22, §48, §60)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('PERSONAL INTELLIGENCE', style: AppTypography.sectionHeader),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.glassSubtle,
+                    borderRadius: AppRadii.radius8,
+                    border: Border.all(color: AppColors.glassBorderSubtle, width: 0.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.shield_outlined, size: 11, color: AppColors.metallicWhite),
+                      const SizedBox(width: 4),
+                      Text(
+                        '100% Local & Private',
+                        style: AppTypography.caption.copyWith(
+                          fontSize: 10,
+                          color: AppColors.metallicWhite,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.p12),
+            GlassCard(
+              padding: AppSpacing.insets20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _IntelligenceSwitchRow(
+                    title: 'Smart Categorization',
+                    description: 'Suggests item type in Quick Add based on text patterns and keywords',
+                    value: settings.enableSmartCategorization,
+                    onChanged: (val) {
+                      intelligence.updateSettings(
+                        settings.copyWith(enableSmartCategorization: val),
+                      );
+                    },
+                  ),
+                  const Divider(color: AppColors.glassBorderSubtle, height: 24),
+                  _IntelligenceSwitchRow(
+                    title: "Today's Focus Prediction",
+                    description: 'Ranks high-priority and urgent tasks for immediate focus',
+                    value: settings.enablePriorityPrediction,
+                    onChanged: (val) {
+                      intelligence.updateSettings(
+                        settings.copyWith(enablePriorityPrediction: val),
+                      );
+                    },
+                  ),
+                  const Divider(color: AppColors.glassBorderSubtle, height: 24),
+                  _IntelligenceSwitchRow(
+                    title: 'Related & Duplicate Item Detection',
+                    description: 'Identifies similar entries to prevent duplicates across categories',
+                    value: settings.enableRelatedItemDetection,
+                    onChanged: (val) {
+                      intelligence.updateSettings(
+                        settings.copyWith(enableRelatedItemDetection: val),
+                      );
+                    },
+                  ),
+                  const Divider(color: AppColors.glassBorderSubtle, height: 24),
+                  _IntelligenceSwitchRow(
+                    title: 'Semantic & Fuzzy Search',
+                    description: 'Matches meaning and token clusters across all workspace notes and tasks',
+                    value: settings.enableSemanticSearch,
+                    onChanged: (val) {
+                      intelligence.updateSettings(
+                        settings.copyWith(enableSemanticSearch: val),
+                      );
+                    },
+                  ),
+                  const Divider(color: AppColors.glassBorderSubtle, height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Local Learning Events', style: AppTypography.itemTitle),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$_eventCount workspace events recorded locally',
+                              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.p12),
+                      GlassButton(
+                        text: 'Clear History',
+                        onPressed: _handleClearLearningData,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.p28),
+
             // Data Management
             const Text('DATA & BACKUP', style: AppTypography.sectionHeader),
             const SizedBox(height: AppSpacing.p12),
@@ -236,17 +381,20 @@ class _SettingsViewState extends State<SettingsView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Export Workspace', style: AppTypography.itemTitle),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Save a structured JSON backup of your offline workspace',
-                            style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Export Workspace', style: AppTypography.itemTitle),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Save a structured JSON backup of your offline workspace',
+                              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.p12),
                       GlassButton(
                         text: 'Export JSON',
                         isLoading: _isExporting,
@@ -263,17 +411,20 @@ class _SettingsViewState extends State<SettingsView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Import Workspace', style: AppTypography.itemTitle),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Restore or merge data from a previously saved JSON backup',
-                            style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Import Workspace', style: AppTypography.itemTitle),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Restore or merge data from a previously saved JSON backup',
+                              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.p12),
                       GlassButton(
                         text: 'Import JSON',
                         isLoading: _isImporting,
@@ -290,20 +441,23 @@ class _SettingsViewState extends State<SettingsView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Reset All Data',
-                            style: AppTypography.itemTitle.copyWith(color: AppColors.danger),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Permanently erase local SQLite database',
-                            style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Reset All Data',
+                              style: AppTypography.itemTitle.copyWith(color: AppColors.danger),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Permanently erase local SQLite database',
+                              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.p12),
                       GlassButton.destructive(
                         text: 'Reset Database',
                         onPressed: _handleResetDatabase,
@@ -342,18 +496,18 @@ class _SettingsViewState extends State<SettingsView> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Burn Shut',
+                              'Burn Think',
                               style: AppTypography.cardTitle.copyWith(fontWeight: FontWeight.w700),
                             ),
                             Text(
-                              'Version 1.0.0',
+                              'Version 1.0.0 + Intelligence',
                               style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Lightweight offline personal desktop workspace.\nTake everything that is in your head and organize it in one focused place.',
+                          'Lightweight offline personal desktop workspace with local intelligence.\nTake everything that is in your head and organize it in one focused place.',
                           style: AppTypography.body.copyWith(color: AppColors.textSecondary, height: 1.4),
                         ),
                       ],
@@ -367,6 +521,51 @@ class _SettingsViewState extends State<SettingsView> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _IntelligenceSwitchRow extends StatelessWidget {
+  final String title;
+  final String description;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _IntelligenceSwitchRow({
+    required this.title,
+    required this.description,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTypography.itemTitle),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.p12),
+        Switch(
+          value: value,
+          activeThumbColor: AppColors.metallicWhite,
+          activeTrackColor: AppColors.glassHover,
+          inactiveThumbColor: AppColors.textTertiary,
+          inactiveTrackColor: AppColors.glassSubtle,
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }

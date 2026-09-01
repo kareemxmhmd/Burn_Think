@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:burn_shut/core/utils/date_utils.dart';
+import 'package:burn_think/core/utils/date_utils.dart';
 
 void main() {
   group('DateUtils Tests', () {

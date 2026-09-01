@@ -15,6 +15,13 @@ import '../../domain/repositories/content_repository.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../../domain/repositories/shopping_repository.dart';
 
+import '../../core/intelligence/intelligence_service.dart';
+import '../../core/intelligence/priority_predictor.dart';
+import '../../data/repositories/sqlite_ml_event_repository.dart';
+import '../../domain/models/ml_event.dart';
+import '../../domain/models/workspace_insights.dart';
+import '../../domain/repositories/ml_event_repository.dart';
+
 enum AppSection {
   home('Home'),
   tasks('Tasks'),
@@ -58,6 +65,7 @@ class WorkspaceController extends ChangeNotifier {
   final ContentRepository contentRepository;
   final NoteRepository noteRepository;
   final ShoppingRepository shoppingRepository;
+  final IntelligenceService intelligenceService;
   final ToastService _toastService;
 
   final _uuid = const Uuid();
@@ -69,8 +77,14 @@ class WorkspaceController extends ChangeNotifier {
     required this.contentRepository,
     required this.noteRepository,
     required this.shoppingRepository,
+    MLEventRepository? mlEventRepository,
+    IntelligenceService? intelligenceService,
     ToastService? toastService,
-  })  : _toastService = toastService ?? ToastService.instance;
+  })  : _toastService = toastService ?? ToastService.instance,
+        intelligenceService = intelligenceService ??
+            IntelligenceService(
+              mlEventRepository: mlEventRepository ?? SqliteMLEventRepository(),
+            );
 
   // UI State
   AppSection _currentSection = AppSection.home;
@@ -129,11 +143,38 @@ class WorkspaceController extends ChangeNotifier {
   WorkspaceStats _stats = const WorkspaceStats();
   WorkspaceStats get stats => _stats;
 
+  // Intelligence Getters
+  List<PrioritizedFocusItem> get todaysFocus =>
+      intelligenceService.predictFocus(
+        activeTasks: _activeTasks,
+        activeProjects: _activeProjects,
+      );
+
+  WorkspaceInsights get insights =>
+      intelligenceService.getInsights(controller: this);
+
   // Navigation
   void navigateTo(AppSection section) {
     _currentSection = section;
     closeDetail();
     notifyListeners();
+
+    switch (section) {
+      case AppSection.projects:
+        intelligenceService.recordEvent(eventType: MLEventType.projectOpened);
+        break;
+      case AppSection.workout:
+        intelligenceService.recordEvent(eventType: MLEventType.workoutOpened);
+        break;
+      case AppSection.content:
+        intelligenceService.recordEvent(eventType: MLEventType.contentOpened);
+        break;
+      case AppSection.notes:
+        intelligenceService.recordEvent(eventType: MLEventType.noteOpened);
+        break;
+      default:
+        break;
+    }
   }
 
   // Detail Panel
@@ -152,6 +193,7 @@ class WorkspaceController extends ChangeNotifier {
   // Quick Add
   void openQuickAdd() {
     _isQuickAddOpen = true;
+    intelligenceService.recordEvent(eventType: MLEventType.quickAddUsed);
     notifyListeners();
   }
 
@@ -250,6 +292,12 @@ class WorkspaceController extends ChangeNotifier {
         updatedAt: now,
       );
       await taskRepository.insertTask(task);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemCreated,
+        itemType: 'task',
+        itemId: task.id,
+        metadata: {'title': task.title, 'priority': task.priority.name},
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to create task: $e');
@@ -260,6 +308,11 @@ class WorkspaceController extends ChangeNotifier {
     try {
       final updated = task.copyWith(updatedAt: DateTime.now());
       await taskRepository.updateTask(updated);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemEdited,
+        itemType: 'task',
+        itemId: updated.id,
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to update task: $e');
@@ -269,6 +322,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> completeTask(Task task) async {
     try {
       await taskRepository.setTaskCompleted(task.id, true);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemCompleted,
+        itemType: 'task',
+        itemId: task.id,
+      );
       await refreshAllData();
 
       _toastService.show(
@@ -276,6 +334,11 @@ class WorkspaceController extends ChangeNotifier {
         undoLabel: 'Undo',
         onUndo: () async {
           await taskRepository.setTaskCompleted(task.id, false);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemReopened,
+            itemType: 'task',
+            itemId: task.id,
+          );
           await refreshAllData();
         },
       );
@@ -287,6 +350,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> uncompleteTask(Task task) async {
     try {
       await taskRepository.setTaskCompleted(task.id, false);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemReopened,
+        itemType: 'task',
+        itemId: task.id,
+      );
       await refreshAllData();
       _toastService.show(
         'Task restored to active',
@@ -304,6 +372,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> deleteTask(Task task) async {
     try {
       await taskRepository.deleteTask(task.id);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemDeleted,
+        itemType: 'task',
+        itemId: task.id,
+      );
       await refreshAllData();
       if (_detailTarget?.id == task.id) closeDetail();
 
@@ -312,6 +385,11 @@ class WorkspaceController extends ChangeNotifier {
         undoLabel: 'Undo',
         onUndo: () async {
           await taskRepository.insertTask(task);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemRestored,
+            itemType: 'task',
+            itemId: task.id,
+          );
           await refreshAllData();
         },
       );
@@ -319,7 +397,6 @@ class WorkspaceController extends ChangeNotifier {
       _toastService.show('Failed to delete task: $e');
     }
   }
-
   // ==========================================
   // PROJECT OPERATIONS
   // ==========================================
@@ -355,6 +432,12 @@ class WorkspaceController extends ChangeNotifier {
 
     try {
       await projectRepository.insertProject(project);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemCreated,
+        itemType: 'project',
+        itemId: project.id,
+        metadata: {'title': project.title},
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to create project: $e');
@@ -366,6 +449,11 @@ class WorkspaceController extends ChangeNotifier {
     try {
       final updated = project.copyWith(updatedAt: DateTime.now());
       await projectRepository.updateProject(updated);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemEdited,
+        itemType: 'project',
+        itemId: updated.id,
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to update project: $e');
@@ -375,6 +463,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> deleteProject(Project project) async {
     try {
       await projectRepository.deleteProject(project.id);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemDeleted,
+        itemType: 'project',
+        itemId: project.id,
+      );
       await refreshAllData();
       if (_detailTarget?.id == project.id) closeDetail();
 
@@ -383,6 +476,11 @@ class WorkspaceController extends ChangeNotifier {
         undoLabel: 'Undo',
         onUndo: () async {
           await projectRepository.insertProject(project);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemRestored,
+            itemType: 'project',
+            itemId: project.id,
+          );
           await refreshAllData();
         },
       );
@@ -394,12 +492,22 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> setProjectCompleted(Project project, bool isCompleted) async {
     try {
       await projectRepository.setProjectCompleted(project.id, isCompleted);
+      intelligenceService.recordEvent(
+        eventType: isCompleted ? MLEventType.itemCompleted : MLEventType.itemReopened,
+        itemType: 'project',
+        itemId: project.id,
+      );
       await refreshAllData();
       _toastService.show(
         isCompleted ? 'Project marked completed' : 'Project restored to active',
         undoLabel: 'Undo',
         onUndo: () async {
           await projectRepository.setProjectCompleted(project.id, !isCompleted);
+          intelligenceService.recordEvent(
+            eventType: !isCompleted ? MLEventType.itemCompleted : MLEventType.itemReopened,
+            itemType: 'project',
+            itemId: project.id,
+          );
           await refreshAllData();
         },
       );
@@ -488,6 +596,12 @@ class WorkspaceController extends ChangeNotifier {
 
     try {
       await workoutRepository.insertWorkout(workout);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemCreated,
+        itemType: 'workout',
+        itemId: workout.id,
+        metadata: {'name': workout.name},
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to create workout: $e');
@@ -499,6 +613,11 @@ class WorkspaceController extends ChangeNotifier {
     try {
       final updated = workout.copyWith(updatedAt: DateTime.now());
       await workoutRepository.updateWorkout(updated);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemEdited,
+        itemType: 'workout',
+        itemId: updated.id,
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to update workout: $e');
@@ -508,6 +627,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> deleteWorkout(Workout workout) async {
     try {
       await workoutRepository.deleteWorkout(workout.id);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemDeleted,
+        itemType: 'workout',
+        itemId: workout.id,
+      );
       await refreshAllData();
       if (_detailTarget?.id == workout.id) closeDetail();
 
@@ -516,6 +640,11 @@ class WorkspaceController extends ChangeNotifier {
         undoLabel: 'Undo',
         onUndo: () async {
           await workoutRepository.insertWorkout(workout);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemRestored,
+            itemType: 'workout',
+            itemId: workout.id,
+          );
           await refreshAllData();
         },
       );
@@ -602,6 +731,12 @@ class WorkspaceController extends ChangeNotifier {
         updatedAt: now,
       );
       await contentRepository.insertContentItem(item);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemCreated,
+        itemType: 'content',
+        itemId: item.id,
+        metadata: {'title': item.title, 'contentType': item.contentType},
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to create content idea: $e');
@@ -612,6 +747,11 @@ class WorkspaceController extends ChangeNotifier {
     try {
       final updated = item.copyWith(updatedAt: DateTime.now());
       await contentRepository.updateContentItem(updated);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemEdited,
+        itemType: 'content',
+        itemId: updated.id,
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to update content idea: $e');
@@ -621,6 +761,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> deleteContentItem(ContentItem item) async {
     try {
       await contentRepository.deleteContentItem(item.id);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemDeleted,
+        itemType: 'content',
+        itemId: item.id,
+      );
       await refreshAllData();
       if (_detailTarget?.id == item.id) closeDetail();
 
@@ -629,6 +774,11 @@ class WorkspaceController extends ChangeNotifier {
         undoLabel: 'Undo',
         onUndo: () async {
           await contentRepository.insertContentItem(item);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemRestored,
+            itemType: 'content',
+            itemId: item.id,
+          );
           await refreshAllData();
         },
       );
@@ -656,6 +806,12 @@ class WorkspaceController extends ChangeNotifier {
         updatedAt: now,
       );
       await noteRepository.insertNote(note);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemCreated,
+        itemType: 'note',
+        itemId: note.id,
+        metadata: {'title': note.title},
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to create note: $e');
@@ -666,6 +822,11 @@ class WorkspaceController extends ChangeNotifier {
     try {
       final updated = note.copyWith(updatedAt: DateTime.now());
       await noteRepository.updateNote(updated);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemEdited,
+        itemType: 'note',
+        itemId: updated.id,
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to update note: $e');
@@ -684,6 +845,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> deleteNote(Note note) async {
     try {
       await noteRepository.deleteNote(note.id);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemDeleted,
+        itemType: 'note',
+        itemId: note.id,
+      );
       await refreshAllData();
       if (_detailTarget?.id == note.id) closeDetail();
 
@@ -692,6 +858,11 @@ class WorkspaceController extends ChangeNotifier {
         undoLabel: 'Undo',
         onUndo: () async {
           await noteRepository.insertNote(note);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemRestored,
+            itemType: 'note',
+            itemId: note.id,
+          );
           await refreshAllData();
         },
       );
@@ -717,6 +888,12 @@ class WorkspaceController extends ChangeNotifier {
         updatedAt: now,
       );
       await shoppingRepository.insertShoppingItem(item);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemCreated,
+        itemType: 'shopping',
+        itemId: item.id,
+        metadata: {'title': item.title},
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to create shopping item: $e');
@@ -727,6 +904,11 @@ class WorkspaceController extends ChangeNotifier {
     try {
       final updated = item.copyWith(updatedAt: DateTime.now());
       await shoppingRepository.updateShoppingItem(updated);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemEdited,
+        itemType: 'shopping',
+        itemId: updated.id,
+      );
       await refreshAllData();
     } catch (e) {
       _toastService.show('Failed to update shopping item: $e');
@@ -736,6 +918,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> markShoppingItemBought(ShoppingItem item) async {
     try {
       await shoppingRepository.setShoppingItemBought(item.id, true);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemCompleted,
+        itemType: 'shopping',
+        itemId: item.id,
+      );
       await refreshAllData();
 
       _toastService.show(
@@ -743,6 +930,11 @@ class WorkspaceController extends ChangeNotifier {
         undoLabel: 'Undo',
         onUndo: () async {
           await shoppingRepository.setShoppingItemBought(item.id, false);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemReopened,
+            itemType: 'shopping',
+            itemId: item.id,
+          );
           await refreshAllData();
         },
       );
@@ -754,12 +946,22 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> markShoppingItemUnbought(ShoppingItem item) async {
     try {
       await shoppingRepository.setShoppingItemBought(item.id, false);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemReopened,
+        itemType: 'shopping',
+        itemId: item.id,
+      );
       await refreshAllData();
       _toastService.show(
         'Item moved back to To Buy',
         undoLabel: 'Undo',
         onUndo: () async {
           await shoppingRepository.setShoppingItemBought(item.id, true);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemCompleted,
+            itemType: 'shopping',
+            itemId: item.id,
+          );
           await refreshAllData();
         },
       );
@@ -771,6 +973,11 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> deleteShoppingItem(ShoppingItem item) async {
     try {
       await shoppingRepository.deleteShoppingItem(item.id);
+      intelligenceService.recordEvent(
+        eventType: MLEventType.itemDeleted,
+        itemType: 'shopping',
+        itemId: item.id,
+      );
       await refreshAllData();
       if (_detailTarget?.id == item.id) closeDetail();
 
@@ -779,6 +986,11 @@ class WorkspaceController extends ChangeNotifier {
         undoLabel: 'Undo',
         onUndo: () async {
           await shoppingRepository.insertShoppingItem(item);
+          intelligenceService.recordEvent(
+            eventType: MLEventType.itemRestored,
+            itemType: 'shopping',
+            itemId: item.id,
+          );
           await refreshAllData();
         },
       );

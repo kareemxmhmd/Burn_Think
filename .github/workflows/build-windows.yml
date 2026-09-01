@@ -44,12 +44,12 @@ jobs:
         run: |
           Compress-Archive `
             -Path "build\windows\x64\runner\Release\*" `
-            -DestinationPath "Burn-Shut-Windows.zip" `
+            -DestinationPath "Burn-Think-Windows.zip" `
             -Force
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
-          name: Burn-Shut-Windows
-          path: Burn-Shut-Windows.zip
+          name: Burn-Think-Windows
+          path: Burn-Think-Windows.zip
           retention-days: 14

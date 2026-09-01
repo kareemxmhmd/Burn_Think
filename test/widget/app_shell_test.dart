@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:burn_shut/app/app.dart';
-import 'package:burn_shut/core/database/app_database.dart';
-import 'package:burn_shut/core/services/toast_service.dart';
-import 'package:burn_shut/data/repositories/sqlite_content_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_note_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_project_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_shopping_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_task_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_workout_repository.dart';
-import 'package:burn_shut/presentation/state/workspace_controller.dart';
-import 'package:burn_shut/presentation/widgets/navigation/sidebar.dart';
+import 'package:burn_think/app/app.dart';
+import 'package:burn_think/core/database/app_database.dart';
+import 'package:burn_think/core/services/toast_service.dart';
+import 'package:burn_think/data/repositories/sqlite_content_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_note_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_project_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_shopping_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_task_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_workout_repository.dart';
+import 'package:burn_think/presentation/state/workspace_controller.dart';
+import 'package:burn_think/presentation/widgets/navigation/sidebar.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,7 @@ void main() {
     return controller;
   }
 
-  testWidgets('Burn Shut App Shell renders sidebar and empty workspace on first launch', (WidgetTester tester) async {
+  testWidgets('Burn Think App Shell renders sidebar and empty workspace on first launch', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -48,11 +48,11 @@ void main() {
       controller = await createTestController(inMemoryDb);
     });
 
-    await tester.pumpWidget(BurnShutApp(controller: controller));
+    await tester.pumpWidget(BurnThinkApp(controller: controller));
     await tester.pump();
 
     // Verify Branding
-    expect(find.text('Burn Shut'), findsWidgets);
+    expect(find.text('Burn Think'), findsWidgets);
     expect(find.text('Deep Workspace'), findsOneWidget);
 
     // Verify Sidebar navigation items
@@ -87,7 +87,7 @@ void main() {
       controller = await createTestController(inMemoryDb);
     });
 
-    await tester.pumpWidget(BurnShutApp(controller: controller));
+    await tester.pumpWidget(BurnThinkApp(controller: controller));
     await tester.pump();
 
     // Tap Tasks in sidebar
@@ -106,10 +106,10 @@ void main() {
     // Verify task is added to list
     expect(find.text('Design architecture review'), findsOneWidget);
 
-    // Navigate to Home -> Tasks card should now display the task
+    // Navigate to Home -> Tasks card and Focus card display the task
     await tester.tap(sidebarItem('Home'));
     await tester.pump();
-    expect(find.text('Design architecture review'), findsOneWidget);
+    expect(find.text('Design architecture review'), findsWidgets);
 
     // Complete the task from Home
     await tester.runAsync(() async {
@@ -142,7 +142,7 @@ void main() {
       controller = await createTestController(inMemoryDb);
     });
 
-    await tester.pumpWidget(BurnShutApp(controller: controller));
+    await tester.pumpWidget(BurnThinkApp(controller: controller));
     await tester.pump();
 
     // Trigger Quick Add via controller

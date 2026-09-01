@@ -45,7 +45,7 @@ class Sidebar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Burn Shut',
+                        'Burn Think',
                         style: AppTypography.pageTitle.copyWith(
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,

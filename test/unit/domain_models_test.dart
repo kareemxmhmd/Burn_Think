@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:burn_shut/domain/models/task.dart';
-import 'package:burn_shut/domain/models/project.dart';
-import 'package:burn_shut/domain/models/workout.dart';
-import 'package:burn_shut/domain/models/content_item.dart';
-import 'package:burn_shut/domain/models/note.dart';
-import 'package:burn_shut/domain/models/shopping_item.dart';
+import 'package:burn_think/domain/models/task.dart';
+import 'package:burn_think/domain/models/project.dart';
+import 'package:burn_think/domain/models/workout.dart';
+import 'package:burn_think/domain/models/content_item.dart';
+import 'package:burn_think/domain/models/note.dart';
+import 'package:burn_think/domain/models/shopping_item.dart';
 
 void main() {
   group('Domain Models Unit Tests', () {

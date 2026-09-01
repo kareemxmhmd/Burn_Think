@@ -4,6 +4,8 @@ import '../../../core/constants/colors.dart';
 import '../../../core/constants/radii.dart';
 import '../../../core/constants/spacing.dart';
 import '../../../core/constants/typography.dart';
+import '../../../core/intelligence/related_items_detector.dart';
+import '../../../core/intelligence/smart_categorizer.dart';
 import '../../../domain/models/task.dart';
 import '../../../domain/models/workout.dart';
 import '../../state/workspace_controller.dart';
@@ -22,6 +24,7 @@ class QuickAddModal extends StatefulWidget {
 
 class _QuickAddModalState extends State<QuickAddModal> {
   DetailType _selectedType = DetailType.task;
+  bool _userManuallySelectedType = false;
 
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -42,8 +45,19 @@ class _QuickAddModalState extends State<QuickAddModal> {
 
   bool _isSubmitting = false;
 
+  // Intelligence State
+  CategorizationResult? _currentSuggestion;
+  List<RelatedItemMatch> _relatedItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController.addListener(_onTitleChanged);
+  }
+
   @override
   void dispose() {
+    _titleController.removeListener(_onTitleChanged);
     _titleController.dispose();
     _descriptionController.dispose();
     _notesController.dispose();
@@ -53,6 +67,46 @@ class _QuickAddModalState extends State<QuickAddModal> {
     super.dispose();
   }
 
+  void _onTitleChanged() {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _currentSuggestion = null;
+          _relatedItems = [];
+        });
+      }
+      return;
+    }
+
+    // 1. Smart Categorization
+    final suggestion = widget.controller.intelligenceService.categorize(title);
+
+    // 2. Related items detection
+    final related = widget.controller.intelligenceService.findRelated(
+      candidateTitle: title,
+      tasks: widget.controller.activeTasks,
+      projects: widget.controller.activeProjects,
+    );
+
+    if (mounted) {
+      setState(() {
+        _currentSuggestion = suggestion;
+        _relatedItems = related;
+        if (!_userManuallySelectedType && suggestion != null && suggestion.confidence >= 0.7) {
+          _selectedType = suggestion.type;
+        }
+      });
+    }
+  }
+
+  void _selectType(DetailType type, {bool manual = true}) {
+    setState(() {
+      _selectedType = type;
+      if (manual) _userManuallySelectedType = true;
+    });
+  }
+
   Future<void> _handleSave() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
@@ -60,6 +114,15 @@ class _QuickAddModalState extends State<QuickAddModal> {
     setState(() => _isSubmitting = true);
 
     try {
+      // Record category feedback if user overridden ML suggestion
+      if (_currentSuggestion != null && _currentSuggestion!.type != _selectedType) {
+        await widget.controller.intelligenceService.recordCategoryOverride(
+          inputText: title,
+          suggestedType: _currentSuggestion!.type,
+          userChosenType: _selectedType,
+        );
+      }
+
       switch (_selectedType) {
         case DetailType.task:
           await widget.controller.createTask(
@@ -160,8 +223,8 @@ class _QuickAddModalState extends State<QuickAddModal> {
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
-                  maxWidth: 520,
-                  maxHeight: 620,
+                  maxWidth: 540,
+                  maxHeight: 640,
                 ),
                 child: GlassSurface(
                   level: GlassLevel.elevated,
@@ -207,43 +270,113 @@ class _QuickAddModalState extends State<QuickAddModal> {
                               label: 'Task',
                               icon: Icons.check_box_outlined,
                               isSelected: _selectedType == DetailType.task,
-                              onTap: () => setState(() => _selectedType = DetailType.task),
+                              onTap: () => _selectType(DetailType.task),
                             ),
                             _TypePill(
                               label: 'Project',
                               icon: Icons.layers_outlined,
                               isSelected: _selectedType == DetailType.project,
-                              onTap: () => setState(() => _selectedType = DetailType.project),
+                              onTap: () => _selectType(DetailType.project),
                             ),
                             _TypePill(
                               label: 'Workout',
                               icon: Icons.fitness_center_outlined,
                               isSelected: _selectedType == DetailType.workout,
-                              onTap: () => setState(() => _selectedType = DetailType.workout),
+                              onTap: () => _selectType(DetailType.workout),
                             ),
                             _TypePill(
                               label: 'Content',
                               icon: Icons.auto_awesome_outlined,
                               isSelected: _selectedType == DetailType.content,
-                              onTap: () => setState(() => _selectedType = DetailType.content),
+                              onTap: () => _selectType(DetailType.content),
                             ),
                             _TypePill(
                               label: 'Note',
                               icon: Icons.description_outlined,
                               isSelected: _selectedType == DetailType.note,
-                              onTap: () => setState(() => _selectedType = DetailType.note),
+                              onTap: () => _selectType(DetailType.note),
                             ),
                             _TypePill(
                               label: 'Shopping',
                               icon: Icons.shopping_bag_outlined,
                               isSelected: _selectedType == DetailType.shopping,
-                              onTap: () => setState(() => _selectedType = DetailType.shopping),
+                              onTap: () => _selectType(DetailType.shopping),
                             ),
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: AppSpacing.p20),
+                      // Smart Intelligence Suggestion & Related Items Banner
+                      if (_currentSuggestion != null && _currentSuggestion!.confidence >= 0.6) ...[
+                        const SizedBox(height: AppSpacing.p8),
+                        GestureDetector(
+                          onTap: () => _selectType(_currentSuggestion!.type, manual: false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppColors.glassSubtle,
+                              borderRadius: AppRadii.radius8,
+                              border: Border.all(color: AppColors.glassBorderSubtle, width: 0.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.auto_awesome, size: 12, color: AppColors.metallicWhite),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Suggested: ${_capitalize(_currentSuggestion!.type.name)} (${(_currentSuggestion!.confidence * 100).toInt()}%)',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.metallicWhite,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (_selectedType != _currentSuggestion!.type) ...[
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '• Switch',
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      if (_relatedItems.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.p8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.glassSubtle,
+                            borderRadius: AppRadii.radius8,
+                            border: Border.all(color: AppColors.glassBorderSubtle, width: 0.5),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.info_outline, size: 13, color: AppColors.textSecondary),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Related item found: "${_relatedItems.first.title}"',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: AppSpacing.p16),
 
                       // Title input
                       GlassTextField(
@@ -404,6 +537,8 @@ class _QuickAddModalState extends State<QuickAddModal> {
       ),
     );
   }
+
+  String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   String _getTitleHint() {
     switch (_selectedType) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/colors.dart';
 import '../data/repositories/sqlite_content_repository.dart';
+import '../data/repositories/sqlite_ml_event_repository.dart';
 import '../data/repositories/sqlite_note_repository.dart';
 import '../data/repositories/sqlite_project_repository.dart';
 import '../data/repositories/sqlite_shopping_repository.dart';
@@ -11,14 +12,14 @@ import '../data/repositories/sqlite_workout_repository.dart';
 import '../presentation/state/workspace_controller.dart';
 import 'app_shell.dart';
 
-class BurnShutApp extends StatelessWidget {
+class BurnThinkApp extends StatelessWidget {
   final WorkspaceController? controller;
 
-  const BurnShutApp({super.key, this.controller});
+  const BurnThinkApp({super.key, this.controller});
 
   Widget _buildMaterialApp() {
     return MaterialApp(
-      title: 'Burn Shut',
+      title: 'Burn Think',
       debugShowCheckedModeBanner: false,
       scrollBehavior: const MaterialScrollBehavior().copyWith(
         dragDevices: {
@@ -63,6 +64,7 @@ class BurnShutApp extends StatelessWidget {
           contentRepository: SqliteContentRepository(),
           noteRepository: SqliteNoteRepository(),
           shoppingRepository: SqliteShoppingRepository(),
+          mlEventRepository: SqliteMLEventRepository(),
         );
         ctrl.loadWorkspace();
         return ctrl;

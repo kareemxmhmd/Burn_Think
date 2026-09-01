@@ -1,13 +1,13 @@
-# Burn Shut
+# Burn Think
 
-Burn Shut هو Desktop App صغير وخفيف معمول بـ Flutter.
+Burn Think هو Desktop App صغير وخفيف معمول بـ Flutter.
 
 فكرته ببساطة إنه يبقى المكان الشخصي اللي تحط فيه كل حاجة في دماغك.
-بدل ما يكون عندك Tasks في مكان، Notes في مكان، أفكار Content في مكان، وShopping List في مكان تاني، Burn Shut بيجمعهم كلهم في Workspace واحدة بسيطة.
+بدل ما يكون عندك Tasks في مكان، Notes في مكان، أفكار Content في مكان، وShopping List في مكان تاني، Burn Think بيجمعهم كلهم في Workspace واحدة بسيطة.
 
 التطبيق بيعمل إيه؟
 
-من داخل Burn Shut تقدر تدير:
+من داخل Burn Think تقدر تدير:
 
 Tasks — الحاجات اللي محتاج تخلصها.
 Projects — المشاريع والحاجات الكبيرة اللي بتشتغل عليها.

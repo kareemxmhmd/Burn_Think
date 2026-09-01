@@ -36,7 +36,7 @@ class AppDatabase {
     } else {
       final appSupportDir = await getApplicationSupportDirectory();
       await Directory(appSupportDir.path).create(recursive: true);
-      dbPath = p.join(appSupportDir.path, 'burn_shut.db');
+      dbPath = p.join(appSupportDir.path, 'burn_think.db');
     }
 
     return await databaseFactory.openDatabase(
@@ -84,6 +84,7 @@ class AppDatabase {
       await txn.delete('content_items');
       await txn.delete('notes');
       await txn.delete('shopping_items');
+      await txn.delete('ml_events');
     });
   }
 

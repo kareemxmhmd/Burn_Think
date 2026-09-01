@@ -79,7 +79,7 @@ class ExportImportService {
     }
 
     final payload = {
-      'app': 'Burn Shut',
+      'app': 'Burn Think',
       'version': 1,
       'exportedAt': DateTime.now().toIso8601String(),
       'data': {
@@ -101,7 +101,7 @@ class ExportImportService {
     try {
       final decoded = jsonDecode(jsonString);
       if (decoded is! Map<String, dynamic>) return false;
-      if (decoded['app'] != 'Burn Shut') return false;
+      if (decoded['app'] != 'Burn Think' && decoded['app'] != 'Burn Shut') return false;
       if (decoded['version'] == null) return false;
       if (decoded['data'] is! Map<String, dynamic>) return false;
       return true;
@@ -124,10 +124,10 @@ class ExportImportService {
         );
       }
 
-      if (decoded['app'] != 'Burn Shut') {
+      if (decoded['app'] != 'Burn Think' && decoded['app'] != 'Burn Shut') {
         return const ImportResult(
           success: false,
-          message: 'File is not a valid Burn Shut backup.',
+          message: 'File is not a valid Burn Think backup.',
         );
       }
 

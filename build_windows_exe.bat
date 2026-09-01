@@ -1,6 +1,6 @@
 @echo off
 echo ========================================================
-echo        Building Burn Shut Windows Release Executable
+echo        Building Burn Think Windows Release Executable
 echo ========================================================
 echo.
 
@@ -31,7 +31,7 @@ echo.
 echo ========================================================
 echo  BUILD SUCCEEDED!
 echo  Executable location:
-echo  %~dp0build\windows\x64\runner\Release\burn_shut.exe
+echo  %~dp0build\windows\x64\runner\Release\burn_think.exe
 echo ========================================================
 echo.
 

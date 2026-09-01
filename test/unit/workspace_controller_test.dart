@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:burn_shut/core/database/app_database.dart';
-import 'package:burn_shut/core/services/toast_service.dart';
-import 'package:burn_shut/data/repositories/sqlite_content_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_note_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_project_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_shopping_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_task_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_workout_repository.dart';
-import 'package:burn_shut/domain/models/task.dart';
-import 'package:burn_shut/domain/models/workout.dart';
-import 'package:burn_shut/presentation/state/search_controller.dart';
-import 'package:burn_shut/presentation/state/workspace_controller.dart';
+import 'package:burn_think/core/database/app_database.dart';
+import 'package:burn_think/core/services/toast_service.dart';
+import 'package:burn_think/data/repositories/sqlite_content_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_note_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_project_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_shopping_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_task_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_workout_repository.dart';
+import 'package:burn_think/domain/models/task.dart';
+import 'package:burn_think/domain/models/workout.dart';
+import 'package:burn_think/presentation/state/search_controller.dart';
+import 'package:burn_think/presentation/state/workspace_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

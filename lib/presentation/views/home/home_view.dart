@@ -3,6 +3,7 @@ import '../../../core/constants/spacing.dart';
 import '../../state/workspace_controller.dart';
 import '../../widgets/feedback/empty_state.dart';
 import 'widgets/home_content_card.dart';
+import 'widgets/home_focus_card.dart';
 import 'widgets/home_overview_panel.dart';
 import 'widgets/home_project_card.dart';
 import 'widgets/home_quick_note_card.dart';
@@ -44,12 +45,19 @@ class HomeView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 860;
+        final hasFocusItems = controller.todaysFocus.isNotEmpty;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.p32, vertical: AppSpacing.p8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Row 0: Today's Focus Card (if recommended items exist)
+              if (hasFocusItems) ...[
+                HomeFocusCard(controller: controller),
+                const SizedBox(height: AppSpacing.p20),
+              ],
+
               // Row 1: Tasks & Current Focus Project
               if (isWide) ...[
                 Row(
@@ -113,7 +121,7 @@ class HomeView extends StatelessWidget {
 
               const SizedBox(height: AppSpacing.p24),
 
-              // Row 3: Today's Overview Panel
+              // Row 3: Today's Overview Panel & Insights
               HomeOverviewPanel(controller: controller),
 
               const SizedBox(height: AppSpacing.p32),

@@ -1,7 +1,7 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 abstract final class DatabaseMigrations {
-  static const int currentVersion = 1;
+  static const int currentVersion = 2;
 
   static Future<void> onCreate(Database db, int version) async {
     final batch = db.batch();
@@ -142,10 +142,37 @@ abstract final class DatabaseMigrations {
     batch.execute('CREATE INDEX idx_shopping_bought ON shopping_items(isBought)');
     batch.execute('CREATE INDEX idx_shopping_created ON shopping_items(createdAt)');
 
+    // 9. ML Intelligence Events
+    batch.execute('''
+      CREATE TABLE ml_events (
+        id TEXT PRIMARY KEY,
+        eventType TEXT NOT NULL,
+        itemType TEXT,
+        itemId TEXT,
+        metadataJson TEXT,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+    batch.execute('CREATE INDEX idx_ml_events_type ON ml_events(eventType)');
+    batch.execute('CREATE INDEX idx_ml_events_created ON ml_events(createdAt)');
+
     await batch.commit(noResult: true);
   }
 
   static Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Future version migrations will go here
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS ml_events (
+          id TEXT PRIMARY KEY,
+          eventType TEXT NOT NULL,
+          itemType TEXT,
+          itemId TEXT,
+          metadataJson TEXT,
+          createdAt TEXT NOT NULL
+        )
+      ''');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_ml_events_type ON ml_events(eventType)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_ml_events_created ON ml_events(createdAt)');
+    }
   }
 }

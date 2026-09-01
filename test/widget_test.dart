@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:burn_shut/core/database/app_database.dart';
-import 'package:burn_shut/data/repositories/sqlite_content_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_note_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_project_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_shopping_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_task_repository.dart';
-import 'package:burn_shut/data/repositories/sqlite_workout_repository.dart';
-import 'package:burn_shut/presentation/state/workspace_controller.dart';
-import 'package:burn_shut/presentation/widgets/navigation/sidebar.dart';
-import 'package:burn_shut/presentation/widgets/navigation/app_header.dart';
-import 'package:burn_shut/presentation/views/home/widgets/home_overview_panel.dart';
+import 'package:burn_think/core/database/app_database.dart';
+import 'package:burn_think/data/repositories/sqlite_content_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_note_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_project_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_shopping_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_task_repository.dart';
+import 'package:burn_think/data/repositories/sqlite_workout_repository.dart';
+import 'package:burn_think/presentation/state/workspace_controller.dart';
+import 'package:burn_think/presentation/widgets/navigation/sidebar.dart';
+import 'package:burn_think/presentation/widgets/navigation/app_header.dart';
+import 'package:burn_think/presentation/views/home/widgets/home_overview_panel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +65,7 @@ void main() {
     await tester.pump();
 
     // Verify Branding
-    expect(find.text('Burn Shut'), findsOneWidget);
+    expect(find.text('Burn Think'), findsOneWidget);
     expect(find.text('Deep Workspace'), findsOneWidget);
 
     // Verify Sidebar Items
